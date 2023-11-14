@@ -73,6 +73,7 @@ class Property(Hashable):
         return self.name
 
 STRONGLY_CONNECTED = Property("strongly_connected")
+UNDIRECTED = Property("undirected")
 
 # Create the propositions
 
@@ -199,8 +200,12 @@ def build_theory():
     E.add_constraint(STRONGLY_CONNECTED >> And(all_connections))
     E.add_constraint(And(all_connections) >> STRONGLY_CONNECTED)
 
+    # Undirected: if an edge exists in one direction, it exists in the other
+    E.add_constraint(UNDIRECTED >> And([Edge(f'n{x}',f'n{y}') >> Edge(f'n{y}',f'n{x}') for x in range(NUM_NODES) for y in range(NUM_NODES)]))
+    E.add_constraint(And([Edge(f'n{x}',f'n{y}') >> Edge(f'n{y}',f'n{x}') for x in range(NUM_NODES) for y in range(NUM_NODES)]) >> UNDIRECTED)
 
-    example_graph(2)
+
+    # example_graph(2)
 
     if FORCE_DISCONNECTED:
         force_disconnected()
@@ -240,6 +245,7 @@ def print_graph(sol):
         print(out)
 
     print("\n\tStrongly Connected: %s" % sol[STRONGLY_CONNECTED])
+    print("\tUndirected: %s" % sol[UNDIRECTED])
 
 if __name__ == "__main__":
 
@@ -255,6 +261,8 @@ if __name__ == "__main__":
     print("    Solution:")
     sol = T.solve()
     print_graph(sol)
+
+    # E.introspect(sol)
 
     # print("\nVariable likelihoods:")
     # for v,vn in zip([e1,e2,e3], ["e1", "e2", "e3"]):
