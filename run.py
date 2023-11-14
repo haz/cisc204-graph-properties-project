@@ -135,23 +135,28 @@ def build_theory():
 
 
     # Distance is well supported
-    # If d(n1,n3,d), then there should be some n2 such that d(n1,n2,d-1)
-    # BUG: This constraint causes all distances to become true
+    # If d(n1,n3,d), then there should be some n2 such that d(n1,n2,d-1) and n2 connected to n3
     for n1 in range(NUM_NODES):
-        for n2 in range(NUM_NODES):
+        for n3 in range(NUM_NODES):
             for d in range(1, NUM_NODES+1):
                 predecessors = []
-                for n3 in range(NUM_NODES):
+                for n2 in range(NUM_NODES):
                     predecessors.append(Edge(f'n{n2}', f'n{n3}') & Distance(f'n{n1}', f'n{n2}', d-1))
-                E.add_constraint(Distance(f'n{n1}', f'n{n2}', d) >> Or(predecessors))
+                E.add_constraint(Distance(f'n{n1}', f'n{n3}', d) >> Or(predecessors))
 
+    # Distance 0 only holds for the same node
+    for node in range(NUM_NODES):
+        E.add_constraint(Distance(f'n{node}', f'n{node}', 0))
+        for other in range(NUM_NODES):
+            if other != node:
+                E.add_constraint(~Distance(f'n{node}', f'n{other}', 0))
 
     # Get all of the propositions in there
     for edge in all_edges:
         E.add_constraint(edge | ~edge)
 
 
-    example_graph(1)
+    # example_graph(1)
 
     return E
 
@@ -185,7 +190,7 @@ if __name__ == "__main__":
     # After compilation (and only after), you can check some of the properties
     # of your model:
     print("\nSatisfiable: %s" % T.satisfiable())
-    # print("# Solutions: %d" % count_solutions(T))
+    print("# Solutions: %d" % count_solutions(T))
     # print("   Solution: %s" % T.solve())
 
     print("    Solution:")
