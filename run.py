@@ -210,6 +210,9 @@ def build_theory():
     if FORCE_DISCONNECTED:
         force_disconnected()
 
+    # E.add_constraint(UNDIRECTED)
+    # E.add_constraint(~STRONGLY_CONNECTED)
+
     return E
 
 
@@ -258,7 +261,14 @@ if __name__ == "__main__":
     # print("# Solutions: %d" % count_solutions(T))
     # print("   Solution: %s" % T.solve())
 
-    print("    Solution:")
+    # print("\n\t Likelihood of being strongly connected: %.2f" % likelihood(T, STRONGLY_CONNECTED))
+    # print("\t Likelihood of being undirected: %.2f" % likelihood(T, UNDIRECTED))
+    # num_all = count_solutions(T)
+    # num_both = count_solutions(T, [STRONGLY_CONNECTED, UNDIRECTED])
+    # print("\t Likelihood of being strongly connected and undirected: %.2f\n" % (num_both / num_all))
+
+
+    print("\n    Solution:")
     sol = T.solve()
     print_graph(sol)
 
