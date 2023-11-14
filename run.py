@@ -9,6 +9,7 @@ from nnf import config
 config.sat_backend = "kissat"
 
 NUM_NODES = int(sys.argv[1])
+FORCE_DISCONNECTED = False
 
 # Encoding that will store all of your constraints
 E = Encoding()
@@ -62,6 +63,17 @@ class Reachable(Hashable):
     def __str__(self) -> str:
         return f"reached({self.n})"
 
+@proposition(E)
+class Property(Hashable):
+
+    def __init__(self, name) -> None:
+        self.name = name
+
+    def __str__(self) -> str:
+        return self.name
+
+STRONGLY_CONNECTED = Property("strongly_connected")
+
 # Create the propositions
 
 all_edges = []
@@ -99,7 +111,8 @@ def example_graph(version):
     assert NUM_NODES == 4, f"Asked for a custom graph of 4 nodes, but instead used {NUM_NODES} as a parameter."
 
     desired_edges = {
-        1: {(0,1), (1,2), (2,0), (2,3), (3,1)}
+        1: {(0,1), (1,2), (2,0), (2,3), (3,1)},
+        2: {(0,1), (1,2), (2,3), (3,0)},
     }
 
     for n1 in range(NUM_NODES):
@@ -170,14 +183,27 @@ def build_theory():
             if other != node:
                 E.add_constraint(~Distance(f'n{node}', f'n{other}', 0))
 
-    # Get all of the propositions in there
-    for edge in all_edges:
-        E.add_constraint(edge | ~edge)
+    # Strongly connected: every node is reachable from every other node
+    #  - every node is reachable from n0
+    #  - every node can reach n0
+    #  - we avoid Reachable (which may be incorrectly defined) and use Distance instead
+    all_connections = []
+    for n1 in range(NUM_NODES):
+        n0_to_n1 = []
+        n1_to_n0 = []
+        for d in range(NUM_NODES+1):
+            n0_to_n1.append(Distance(f'n0', f'n{n1}', d))
+            n1_to_n0.append(Distance(f'n{n1}', f'n0', d))
+        all_connections.append(Or(n0_to_n1))
+        all_connections.append(Or(n1_to_n0))
+    E.add_constraint(STRONGLY_CONNECTED >> And(all_connections))
+    E.add_constraint(And(all_connections) >> STRONGLY_CONNECTED)
 
 
-    # example_graph(1)
+    example_graph(2)
 
-    force_disconnected()
+    if FORCE_DISCONNECTED:
+        force_disconnected()
 
     return E
 
@@ -202,6 +228,18 @@ def print_graph(sol):
                     res.append(str((n1, n2)))
         out += ", ".join(res)
         print(out)
+
+    if FORCE_DISCONNECTED:
+        print("\n\tReachable from n0:")
+        out = "\t  "
+        res = []
+        for n in range(NUM_NODES):
+            if sol[Reachable(f'n{n}')]:
+                res.append(str(n))
+        out += ", ".join(res)
+        print(out)
+
+    print("\n\tStrongly Connected: %s" % sol[STRONGLY_CONNECTED])
 
 if __name__ == "__main__":
 
