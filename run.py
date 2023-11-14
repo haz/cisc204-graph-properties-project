@@ -53,6 +53,15 @@ class Distance(Hashable):
     def __str__(self) -> str:
         return f"d({self.x}, {self.y}) = {self.n}"
 
+@proposition(E)
+class Reachable(Hashable):
+
+    def __init__(self, n) -> None:
+        self.n = n
+
+    def __str__(self) -> str:
+        return f"reached({self.n})"
+
 # Create the propositions
 
 all_edges = []
@@ -68,13 +77,23 @@ for edge in all_edges:
         all_distances.append(Distance(edge.x, edge.y, d))
 
 
-# TODO: Force the graph to be disconnected
-#  - new vars x
+# Force the graph to be disconnected
 #  - x0 holds
 #  - for everything adjacent, one implies the other
 #  - there's some x that doesn't hold
 def force_disconnected():
-    return
+
+    # n1 is reachable
+    E.add_constraint(Reachable(f'n0'))
+
+    # Any node adjacent to a reachable node is also reachable
+    for n1 in range(NUM_NODES):
+        for n2 in range(NUM_NODES):
+            E.add_constraint((Reachable(f'n{n1}') & Adjacent(f'n{n1}', f'n{n2}')) >> Reachable(f'n{n2}'))
+
+    # There's some node that's not reachable
+    E.add_constraint(Or([~Reachable(f'n{n}') for n in range(NUM_NODES)]))
+
 
 def example_graph(version):
     assert NUM_NODES == 4, f"Asked for a custom graph of 4 nodes, but instead used {NUM_NODES} as a parameter."
@@ -158,6 +177,8 @@ def build_theory():
 
     # example_graph(1)
 
+    force_disconnected()
+
     return E
 
 
@@ -190,7 +211,7 @@ if __name__ == "__main__":
     # After compilation (and only after), you can check some of the properties
     # of your model:
     print("\nSatisfiable: %s" % T.satisfiable())
-    print("# Solutions: %d" % count_solutions(T))
+    # print("# Solutions: %d" % count_solutions(T))
     # print("   Solution: %s" % T.solve())
 
     print("    Solution:")
